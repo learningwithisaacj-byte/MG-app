@@ -37,6 +37,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## Open-Meteo
+
+Weather comes from the Open-Meteo API, https://open-meteo.com, used without an API key under its free
+non-commercial terms. Weather data by Open-Meteo.com, licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). The app shows this credit wherever it shows weather data.
+The hot-day AC rules in `Packages/MGEVKit/Sources/EVCore/Precool.swift` follow Volta's smart pre-cool.
+
 ## saic-python-mqtt-gateway
 
 Tyre pressures on cars other than the Windsor are read in 0.04 bar steps, following

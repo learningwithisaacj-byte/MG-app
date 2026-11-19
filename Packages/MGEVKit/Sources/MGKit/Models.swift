@@ -78,6 +78,57 @@ public struct VehicleSnapshot: Equatable, Codable, Sendable {
     public var handBrakeOn: Bool?
     public var headingDeg: Int?
 
+    public init(
+        statusTime: Int64, socPercent: Int?, rangeKm: Double?, odometerKm: Double?, locked: Bool,
+        driverDoorOpen: Bool, passengerDoorOpen: Bool, rearLeftDoorOpen: Bool, rearRightDoorOpen: Bool,
+        bootOpen: Bool, bonnetOpen: Bool, anyWindowOpen: Bool, lightsOn: Bool, climateRunning: Bool,
+        interiorTempC: Int?, exteriorTempC: Int?, auxVolts: Double?, tyres: Tyres?, journeyId: Int64,
+        journeyDistanceRaw: Int, latitude: Double?, longitude: Double?, altitudeM: Int?, gpsTime: Int64?,
+        activeAlerts: [Int], powerMode: Int = 0, engineStatus: Int = 0, speedKmh: Double? = nil,
+        driverWindowOpen: Bool? = nil, passengerWindowOpen: Bool? = nil, rearLeftWindowOpen: Bool? = nil,
+        rearRightWindowOpen: Bool? = nil, sunroofOpen: Bool? = nil, sideLights: Bool = false,
+        dippedBeam: Bool = false, mainBeam: Bool = false, handBrakeOn: Bool? = nil, headingDeg: Int? = nil
+    ) {
+        self.statusTime = statusTime
+        self.socPercent = socPercent
+        self.rangeKm = rangeKm
+        self.odometerKm = odometerKm
+        self.locked = locked
+        self.driverDoorOpen = driverDoorOpen
+        self.passengerDoorOpen = passengerDoorOpen
+        self.rearLeftDoorOpen = rearLeftDoorOpen
+        self.rearRightDoorOpen = rearRightDoorOpen
+        self.bootOpen = bootOpen
+        self.bonnetOpen = bonnetOpen
+        self.anyWindowOpen = anyWindowOpen
+        self.lightsOn = lightsOn
+        self.climateRunning = climateRunning
+        self.interiorTempC = interiorTempC
+        self.exteriorTempC = exteriorTempC
+        self.auxVolts = auxVolts
+        self.tyres = tyres
+        self.journeyId = journeyId
+        self.journeyDistanceRaw = journeyDistanceRaw
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitudeM = altitudeM
+        self.gpsTime = gpsTime
+        self.activeAlerts = activeAlerts
+        self.powerMode = powerMode
+        self.engineStatus = engineStatus
+        self.speedKmh = speedKmh
+        self.driverWindowOpen = driverWindowOpen
+        self.passengerWindowOpen = passengerWindowOpen
+        self.rearLeftWindowOpen = rearLeftWindowOpen
+        self.rearRightWindowOpen = rearRightWindowOpen
+        self.sunroofOpen = sunroofOpen
+        self.sideLights = sideLights
+        self.dippedBeam = dippedBeam
+        self.mainBeam = mainBeam
+        self.handBrakeOn = handBrakeOn
+        self.headingDeg = headingDeg
+    }
+
     public var anyDoorOpen: Bool {
         driverDoorOpen || passengerDoorOpen || rearLeftDoorOpen || rearRightDoorOpen || bootOpen || bonnetOpen
     }

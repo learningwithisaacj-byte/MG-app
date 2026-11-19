@@ -27,6 +27,8 @@ targets:
         product: MGKit
       - package: MGEVKit
         product: EVCore
+      - package: MGEVKit
+        product: OpenMeteo
     info:
       path: App/Info.plist
       properties:

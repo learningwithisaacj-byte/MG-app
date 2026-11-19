@@ -1,6 +1,7 @@
 import EVCore
 import Foundation
 import MGKit
+import OpenMeteo
 
 /// Non-secret things the app remembers about the car, in UserDefaults: which car it is, its battery profile, the
 /// capacity samples it is learning from, and the last reading so the dashboard opens instantly.
@@ -28,8 +29,38 @@ struct CarStore {
         nonmutating set { encode(newValue, "car.lastReading") }
     }
 
+    // MARK: Hot-day AC suggestion
+
+    var precoolEnabled: Bool {
+        get { defaults.object(forKey: "precool.enabled") as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: "precool.enabled") }
+    }
+
+    var precoolThresholdC: Int {
+        get { defaults.object(forKey: "precool.thresholdC") as? Int ?? PrecoolAdvisor.defaultThresholdC }
+        nonmutating set { defaults.set(newValue, forKey: "precool.thresholdC") }
+    }
+
+    /// You usually park under a roof or in shade, so the sun doesn't heat the cabin.
+    var parksInShade: Bool {
+        get { defaults.bool(forKey: "precool.shade") }
+        nonmutating set { defaults.set(newValue, forKey: "precool.shade") }
+    }
+
+    var precoolLastAt: Date? {
+        get { defaults.object(forKey: "precool.lastAt") as? Date }
+        nonmutating set { defaults.set(newValue, forKey: "precool.lastAt") }
+    }
+
+    var lastWeather: Weather? {
+        get { decode(Weather.self, "weather.last") }
+        nonmutating set { encode(newValue, "weather.last") }
+    }
+
     func clear() {
-        for key in ["car.name", "car.profile", "car.capacitySamples", "car.lastReading"] { defaults.removeObject(forKey: key) }
+        for key in ["car.name", "car.profile", "car.capacitySamples", "car.lastReading", "precool.lastAt", "weather.last"] {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     /// Learns the battery size from a charge frame (Windsor only, until other models' readings are checked).

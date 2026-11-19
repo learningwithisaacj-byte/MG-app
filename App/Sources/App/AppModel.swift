@@ -3,6 +3,7 @@ import Foundation
 import LocalAuthentication
 import MGKit
 import Observation
+import OpenMeteo
 
 /// The app's state and the one MG client every screen shares.
 @MainActor
@@ -18,6 +19,10 @@ final class AppModel {
     var notice: Notice?
     /// A command waiting for the control PIN to be entered.
     var commandAwaitingPin: RemoteCommand?
+    /// The weather where the car is parked, from Open-Meteo.
+    private(set) var weather: Weather?
+    /// A hot-day suggestion to turn the AC on, while one stands.
+    private(set) var precool: PrecoolAdvisor.Suggestion?
 
     struct Notice: Identifiable, Equatable {
         let id = UUID()
@@ -28,6 +33,7 @@ final class AppModel {
     let secure: SecureStore
     let car: CarStore
     let client: MGIsmartClient
+    let weatherClient = OpenMeteoClient()
 
     init(secure: SecureStore = .shared, car: CarStore = CarStore()) {
         self.secure = secure
@@ -35,6 +41,7 @@ final class AppModel {
         self.client = MGIsmartClient(credentials: { SecureStore.shared.credentials }, sessions: secure)
         self.phase = secure.credentials == nil ? .signedOut : .ready
         self.reading = car.lastReading
+        self.weather = car.lastWeather
     }
 
     /// Whether a control PIN hash is saved (observable, unlike the Keychain itself).
@@ -79,6 +86,8 @@ final class AppModel {
         car.clear()
         hasPin = false
         reading = nil
+        weather = nil
+        precool = nil
         phase = .signedOut
     }
 
@@ -97,7 +106,54 @@ final class AppModel {
         } catch {
             show(error)
         }
+        await updateWeather()
     }
+
+    // MARK: - Weather and the hot-day AC suggestion
+
+    /// The cabin and outside temperatures to show: the car's own while it is on, worked out from the weather once
+    /// it is parked (the car stops updating them then).
+    var temps: CabinModel.Temps {
+        CabinModel.temps(reading?.snapshot, weather: weather, sheltered: car.parksInShade)
+    }
+
+    /// Fetches the weather at the car's last position (cached 15 minutes per square km), then decides whether to
+    /// suggest the AC. A weather failure is quiet: the dashboard just keeps the car's own figures.
+    func updateWeather() async {
+        if let s = reading?.snapshot, let lat = s.latitude, let lon = s.longitude,
+           let w = try? await weatherClient.current(latitude: lat, longitude: lon) {
+            weather = w
+            car.lastWeather = w
+        }
+        evaluatePrecool()
+    }
+
+    func evaluatePrecool(now: Date = Date()) {
+        // Weather older than an hour says little about right now.
+        let fresh = weather.flatMap { now.timeIntervalSince($0.fetchedAt) < 60 * 60 ? $0 : nil }
+        let result = PrecoolAdvisor.decide(
+            enabled: car.precoolEnabled, thresholdC: car.precoolThresholdC, snapshot: reading?.snapshot, weather: fresh,
+            capacityKwh: profile.usableCapacityKwh, lastSuggestedAt: car.precoolLastAt, now: now,
+            sheltered: car.parksInShade
+        )
+        precool = try? result.get()
+    }
+
+    /// "Turn AC on": the usual Face ID and PIN path, then no more suggestions for two hours.
+    func acceptPrecool() async {
+        car.precoolLastAt = Date()
+        precool = nil
+        await send(.climateOn)
+    }
+
+    /// "Not now": quiet for two hours.
+    func dismissPrecool() {
+        car.precoolLastAt = Date()
+        precool = nil
+    }
+
+    /// Settings changed: decide again with the new rules.
+    func precoolSettingsChanged() { evaluatePrecool() }
 
     // MARK: - Commands
 

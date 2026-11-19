@@ -13,6 +13,9 @@ Keychain.
 | --- | --- |
 | MG i-SMART client (`MGKit`): sign-in, vehicle list, status, charging, lock/unlock/AC/find, PIN check | Done, 31 tests pass, byte-exact with the original Python client |
 | Car models and battery profile (`EVCore`): model detection, learned battery size, flat-road range | Done, 13 tests pass |
+| Weather (`OpenMeteo`): current air temperature and sunshine from Open-Meteo, no API key, cached 15 min per ~1 km | Done, 6 tests pass |
+| Hot-day AC suggestion (`EVCore/Precool.swift`): estimated cabin temperature, Volta's pre-cool rules | Done, 9 tests pass |
+| App: outside and cabin temperature card, "Turn AC on?" card on hot days, settings for it | Written, not yet built in Xcode |
 | App: sign-in, dashboard (battery, range, charging, controls, doors/windows, 12 V, tyres), control PIN, settings | Written, not yet built in Xcode |
 
 ## Build and run on your iPhone

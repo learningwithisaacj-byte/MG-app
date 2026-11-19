@@ -1,5 +1,6 @@
 import EVCore
 import MGKit
+import OpenMeteo
 import SwiftUI
 
 struct DashboardView: View {
@@ -11,8 +12,10 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     if let r = model.reading {
+                        if let suggestion = model.precool { PrecoolCard(suggestion: suggestion) }
                         BatteryCard(snapshot: r.snapshot, charge: r.charge, profile: model.profile, fetchedAt: r.fetchedAt)
                         ControlsCard()
+                        TemperatureCard(temps: model.temps, weather: model.weather)
                         CarStateCard(snapshot: r.snapshot)
                         TyresCard(tyres: r.snapshot.tyres, carWarning: r.snapshot.tyreWarning)
                     } else if model.refreshing {
@@ -190,6 +193,67 @@ struct ControlButton: View {
     }
 }
 
+// MARK: - Hot-day AC suggestion
+
+struct PrecoolCard: View {
+    @Environment(AppModel.self) private var model
+    let suggestion: PrecoolAdvisor.Suggestion
+
+    var body: some View {
+        Card {
+            Label("It's hot out", systemImage: "sun.max.fill")
+                .font(.headline).foregroundStyle(.orange)
+            Text("Your car is probably about \(Int(suggestion.cabinC.rounded())) °C inside (\(Int(suggestion.outsideC.rounded())) °C outside). Turn the AC on?")
+            Text(String(format: "About %d min to cool to %d °C, using about %.1f %% battery.",
+                        suggestion.minutes, Cooling.targetC, suggestion.batteryPercent))
+                .font(.subheadline).foregroundStyle(.secondary)
+            HStack {
+                Button {
+                    Task { await model.acceptPrecool() }
+                } label: {
+                    Label("Turn AC on", systemImage: "fan.fill").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                Button("Not now") { model.dismissPrecool() }
+                    .buttonStyle(.bordered)
+            }
+            .disabled(model.sendingCommand != nil)
+            Text(OpenMeteoClient.attribution).font(.caption2).foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - Temperatures
+
+struct TemperatureCard: View {
+    let temps: CabinModel.Temps
+    let weather: Weather?
+
+    var body: some View {
+        if temps.outsideC != nil || temps.cabinC != nil {
+            Card {
+                if let o = temps.outsideC {
+                    StateRow(icon: "thermometer.sun", text: "Outside \(Int(o.rounded())) °C" + feelsLike, warn: false)
+                }
+                if let c = temps.cabinC {
+                    StateRow(icon: "car.side", text: temps.cabinEstimated ? "Cabin about \(Int(c.rounded())) °C (estimated)" : "Cabin \(Int(c.rounded())) °C",
+                             warn: c >= 35)
+                }
+                if let weather {
+                    Text("\(OpenMeteoClient.attribution), \(weather.fetchedAt.formatted(.relative(presentation: .named)))")
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private var feelsLike: String {
+        guard let f = weather?.feelsLikeC, let o = temps.outsideC, abs(f - o) >= 2 else { return "" }
+        return ", feels like \(Int(f.rounded())) °C"
+    }
+}
+
 // MARK: - Doors, windows, 12 V
 
 struct CarStateCard: View {
@@ -204,9 +268,6 @@ struct CarStateCard: View {
             StateRow(icon: "window.vertical.open", text: snapshot.anyWindowOpen ? "A window is open" : "Windows closed",
                      warn: snapshot.anyWindowOpen)
             if snapshot.climateRunning { StateRow(icon: "fan.fill", text: "AC is running", warn: false) }
-            if let t = snapshot.interiorTempC {
-                StateRow(icon: "thermometer.medium", text: "Inside \(t) °C" + (snapshot.exteriorTempC.map { ", outside \($0) °C" } ?? ""), warn: false)
-            }
             if let v = snapshot.auxVolts {
                 StateRow(icon: "minus.plus.batteryblock", text: String(format: "12 V battery %.1f V", v), warn: v < 11.8)
             }
